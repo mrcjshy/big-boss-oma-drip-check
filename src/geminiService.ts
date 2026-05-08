@@ -35,6 +35,10 @@ const responseSchema = {
           confidence: { type: 'NUMBER' },
           budgetNote: { type: 'STRING' },
           bestBuyReason: { type: 'STRING' },
+          bbox: {
+            type: 'ARRAY',
+            items: { type: 'INTEGER' },
+          },
           platforms: {
             type: 'ARRAY',
             items: {
@@ -61,6 +65,7 @@ const responseSchema = {
           'confidence',
           'budgetNote',
           'bestBuyReason',
+          'bbox',
           'platforms',
         ],
       },
@@ -107,26 +112,59 @@ const normalizeDeal = (deal: GeminiPlatformDeal): PlatformDeal => {
   }
 }
 
+const FALLBACK_BBOX: [number, number, number, number] = [0, 0, 1000, 1000]
+
+const normalizeBbox = (
+  rawBbox: unknown,
+  itemPayload: unknown,
+): [number, number, number, number] | null => {
+  if (!Array.isArray(rawBbox) || rawBbox.length !== 4) {
+    return FALLBACK_BBOX
+  }
+
+  const coerced = rawBbox.map((value) =>
+    Math.round(Math.min(1000, Math.max(0, Number(value) || 0))),
+  ) as [number, number, number, number]
+
+  const [ymin, xmin, ymax, xmax] = coerced
+
+  if (ymax <= ymin || xmax <= xmin) {
+    console.warn('[Drip Check] Skipping item with invalid bbox', {
+      bbox: rawBbox,
+      item: itemPayload,
+    })
+    return null
+  }
+
+  return [ymin, xmin, ymax, xmax]
+}
+
 const normalizeAnalysis = (analysis: GeminiAnalysis): OutfitAnalysis => {
-  const items: ClothingItem[] = analysis.items.map((item, index) => {
+  const items: ClothingItem[] = analysis.items.flatMap((item, index) => {
+    const bbox = normalizeBbox(item.bbox, item)
+    if (!bbox) return []
+
     const platforms = item.platforms.map(normalizeDeal)
     const bestDeal = [...platforms].sort(
       (a, b) => a.estimatedPricePhp - b.estimatedPricePhp,
     )[0]
 
-    return {
-      id: `${item.category}-${index}`,
-      itemName: item.itemName,
-      category: item.category,
-      color: item.color,
-      style: item.style,
-      materialHint: item.materialHint,
-      confidence: Math.min(1, Math.max(0, Number(item.confidence) || 0.5)),
-      budgetNote: item.budgetNote,
-      platforms,
-      bestPlatform: bestDeal.platform,
-      bestBuyReason: item.bestBuyReason,
-    }
+    return [
+      {
+        id: `${item.category}-${index}`,
+        itemName: item.itemName,
+        category: item.category,
+        color: item.color,
+        style: item.style,
+        materialHint: item.materialHint,
+        confidence: Math.min(1, Math.max(0, Number(item.confidence) || 0.5)),
+        budgetNote: item.budgetNote,
+        platforms,
+        bestPlatform: bestDeal.platform,
+        bestBuyReason: item.bestBuyReason,
+        bbox,
+      },
+    ]
   })
 
   return {

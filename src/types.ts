@@ -20,6 +20,7 @@ export type ClothingItem = {
   platforms: PlatformDeal[]
   bestPlatform: PlatformId
   bestBuyReason: string
+  bbox: [number, number, number, number]
 }
 
 export type OutfitAnalysis = {

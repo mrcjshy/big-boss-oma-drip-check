@@ -545,6 +545,349 @@ h3 {
   background: var(--lime);
 }
 
+/* ───────── Bbox overlay (hotspot dots + popover) ───────── */
+
+.bbox-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bbox-overlay__leader {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--ink);
+  opacity: 0.55;
+  z-index: 2;
+}
+
+/* Hotspot dot — sits exactly on the bbox center */
+
+.hotspot {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 3;
+}
+
+.hotspot:focus-visible {
+  outline: none;
+}
+
+.hotspot__dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 2px solid var(--paper);
+  box-shadow:
+    0 0 0 1.5px var(--ink),
+    0 4px 16px rgba(255, 77, 46, 0.55);
+  z-index: 2;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.hotspot__pulse {
+  position: absolute;
+  inset: 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0.55;
+  animation: hotspot-pulse 1.9s ease-out infinite;
+  z-index: 1;
+}
+
+.hotspot__pulse--delay {
+  animation-delay: 0.95s;
+  opacity: 0.35;
+}
+
+.hotspot:hover .hotspot__dot,
+.hotspot--active .hotspot__dot,
+.hotspot:focus-visible .hotspot__dot {
+  transform: scale(1.18);
+  background: var(--accent);
+  box-shadow:
+    0 0 0 2.5px var(--ink),
+    0 6px 22px rgba(255, 77, 46, 0.75);
+}
+
+.hotspot:focus-visible .hotspot__dot {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 6px var(--ink);
+}
+
+.hotspot--active .hotspot__pulse {
+  animation-duration: 1.4s;
+}
+
+@keyframes hotspot-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  80% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Hotspot popover — appears on hover/tap of a dot */
+
+.hotspot-popover {
+  position: absolute;
+  pointer-events: auto;
+  display: grid;
+  gap: 8px;
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.84rem;
+  line-height: 1.35;
+  text-align: left;
+  box-shadow:
+    4px 4px 0 var(--ink),
+    0 16px 36px rgba(10, 10, 10, 0.18);
+  z-index: 5;
+  animation: hotspot-popover-in 160ms ease-out;
+  transform-origin: center left;
+}
+
+.hotspot-popover--left {
+  transform-origin: center right;
+}
+
+@keyframes hotspot-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hotspot-popover__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hotspot-popover__category {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: var(--indigo);
+  color: var(--paper);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hotspot-popover__close {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: background 140ms ease;
+}
+
+.hotspot-popover__close:hover {
+  background: var(--accent-soft);
+}
+
+.hotspot-popover__name {
+  margin: 0;
+  font-family: "Bricolage Grotesque", "Inter", sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.hotspot-popover__meta {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.hotspot-popover__from {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px dashed var(--ink-faint);
+  border-bottom: 1px dashed var(--ink-faint);
+  padding: 6px 0;
+}
+
+.hotspot-popover__from-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.hotspot-popover__from-price {
+  font-family: "Bricolage Grotesque", "Inter", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--accent-deep);
+}
+
+.hotspot-popover__shops {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hotspot-shop {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  background: var(--paper-soft);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.hotspot-shop:hover {
+  transform: translate(-1px, -1px);
+  background: var(--paper);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.hotspot-shop:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 6px var(--ink);
+}
+
+.hotspot-shop--best {
+  background: var(--lime);
+}
+
+.hotspot-shop--best:hover {
+  background: color-mix(in oklab, var(--lime) 80%, var(--paper));
+}
+
+.hotspot-shop__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--shop-accent, var(--accent));
+  border: 1px solid var(--ink);
+}
+
+.hotspot-shop__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hotspot-shop__best {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hotspot-shop__price {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.hotspot-shop__arrow {
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+@media (max-width: 620px) {
+  .hotspot {
+    width: 36px;
+    height: 36px;
+    margin: -18px 0 0 -18px;
+  }
+
+  .hotspot-popover {
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+
+  .hotspot-popover__name {
+    font-size: 0.94rem;
+  }
+
+  .hotspot-shop {
+    padding: 7px 9px;
+  }
+}
+
 /* Sample row */
 
 .sample-row {
@@ -1004,6 +1347,61 @@ h3 {
   margin-top: var(--space-6);
   color: var(--ink-muted);
   font-size: 0.85rem;
+}
+
+/* ───────── Focused mode (after analysis is triggered) ───────── */
+
+.app-shell--focused {
+  gap: clamp(20px, 3vw, 28px);
+}
+
+.app-shell--focused .hero {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: center;
+  padding: 0;
+}
+
+.app-shell--focused .hero-text {
+  gap: 10px;
+}
+
+.app-shell--focused h1 {
+  font-size: clamp(1.7rem, 4.2vw, 2.8rem);
+  line-height: 1;
+}
+
+.app-shell--focused .hero-copy,
+.app-shell--focused .hero-actions,
+.app-shell--focused .hero-flow,
+.app-shell--focused .sample-row,
+.app-shell--focused .upload-card > .card-header,
+.app-shell--focused .status-card > .card-header,
+.app-shell--focused .results,
+.app-shell--focused .page-footer > span:nth-of-type(2) {
+  display: none;
+}
+
+.app-shell--focused .hero-meta {
+  padding: var(--space-3);
+  gap: 10px;
+}
+
+.app-shell--focused .meta-row strong {
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+}
+
+.app-shell--focused .upload-card {
+  gap: var(--space-3);
+}
+
+.app-shell--focused .status-card {
+  gap: var(--space-3);
+}
+
+@media (max-width: 900px) {
+  .app-shell--focused .hero {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ───────── Animations ───────── */
