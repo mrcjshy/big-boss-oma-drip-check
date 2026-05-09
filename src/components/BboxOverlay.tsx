@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, RefObject } from 'react'
 import { PLATFORM_ACCENTS, PLATFORM_LABELS } from '../constants'
-import type { ClothingItem } from '../types'
+import type { ClothingItem, PlatformId } from '../types'
 
 type BboxOverlayProps = {
   imageRef: RefObject<HTMLImageElement | null>
@@ -15,85 +15,47 @@ type ImageBox = {
   height: number
 }
 
-type CardLayout = {
-  item: ClothingItem
-  cardLeft: number
-  cardTop: number
-  leaderLine?: {
-    left: number
-    top: number
-    width: number
-    angle: number
-  }
-}
+const POPOVER_WIDTH = 220
+const POPOVER_HEIGHT_EST = 310
+const POPOVER_OFFSET = 14
+const MAX_VISIBLE = 8
 
-const CARD_WIDTH = 192
-const CARD_HEIGHT = 196
-const CARD_OFFSET = 8
-const STACK_GAP = 10
-const MAX_FLOATING_ITEMS = 6
+const PLATFORM_GLOW: Record<string, string> = {
+  shopee: 'rgba(238, 119, 11, 0.65)',
+  lazada: 'rgba(0, 109, 237, 0.65)',
+  carousell: 'rgba(76, 175, 80, 0.65)',
+}
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value))
 
-const getCheapestPrice = (item: ClothingItem) =>
-  Math.min(...item.platforms.map((deal) => deal.estimatedPricePhp))
-
-const getOverlapRatio = (
-  first: { left: number; top: number; width: number; height: number },
-  second: { left: number; top: number; width: number; height: number },
-) => {
-  const overlapWidth = Math.max(
-    0,
-    Math.min(first.left + first.width, second.left + second.width) -
-      Math.max(first.left, second.left),
-  )
-  const overlapHeight = Math.max(
-    0,
-    Math.min(first.top + first.height, second.top + second.height) -
-      Math.max(first.top, second.top),
-  )
-  const overlapArea = overlapWidth * overlapHeight
-  const smallestArea = Math.min(first.width * first.height, second.width * second.height)
-
-  return smallestArea > 0 ? overlapArea / smallestArea : 0
-}
-
-const buildLeaderLine = (
-  bboxCenter: { x: number; y: number },
-  cardCenter: { x: number; y: number },
-) => {
-  const deltaX = cardCenter.x - bboxCenter.x
-  const deltaY = cardCenter.y - bboxCenter.y
-
-  return {
-    left: bboxCenter.x,
-    top: bboxCenter.y,
-    width: Math.hypot(deltaX, deltaY),
-    angle: Math.atan2(deltaY, deltaX) * (180 / Math.PI),
-  }
-}
-
 export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const [imageBox, setImageBox] = useState<ImageBox | null>(null)
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
+  const [pinnedId, setPinnedId] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [tabOverrides, setTabOverrides] = useState<Record<string, PlatformId>>({})
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const activeTabByItem = useMemo<Record<string, PlatformId>>(() => {
+    const defaults: Record<string, PlatformId> = {}
+    items.forEach((item) => {
+      defaults[item.id] = item.bestPlatform
+    })
+    return { ...defaults, ...tabOverrides }
+  }, [items, tabOverrides])
 
   useEffect(() => {
     const image = imageRef.current
     const overlay = overlayRef.current
-
-    if (!image || !overlay) {
-      return
-    }
+    if (!image || !overlay) return
 
     let frameId = 0
-    const updateImageBox = () => {
+    const update = () => {
       cancelAnimationFrame(frameId)
       frameId = requestAnimationFrame(() => {
         const imageRect = image.getBoundingClientRect()
         const overlayRect = overlay.getBoundingClientRect()
-
         setImageBox({
           left: imageRect.left - overlayRect.left,
           top: imageRect.top - overlayRect.top,
@@ -103,194 +65,206 @@ export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
       })
     }
 
-    updateImageBox()
-    image.addEventListener('load', updateImageBox)
-    window.addEventListener('resize', updateImageBox)
-
-    const resizeObserver =
-      'ResizeObserver' in window ? new ResizeObserver(updateImageBox) : null
-    resizeObserver?.observe(image)
+    update()
+    image.addEventListener('load', update)
+    window.addEventListener('resize', update)
+    const ro = 'ResizeObserver' in window ? new ResizeObserver(update) : null
+    ro?.observe(image)
 
     return () => {
       cancelAnimationFrame(frameId)
-      image.removeEventListener('load', updateImageBox)
-      window.removeEventListener('resize', updateImageBox)
-      resizeObserver?.disconnect()
+      image.removeEventListener('load', update)
+      window.removeEventListener('resize', update)
+      ro?.disconnect()
     }
   }, [imageRef, items])
 
   useEffect(() => {
-    const collapseOnOutsideTap = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null
-
-      if (!target?.closest('.floating-card')) {
-        setExpandedCardId(null)
+    const collapse = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target?.closest('.hotspot-group')) {
+        setPinnedId(null)
       }
     }
-
-    document.addEventListener('pointerdown', collapseOnOutsideTap, true)
-
-    return () => document.removeEventListener('pointerdown', collapseOnOutsideTap, true)
+    document.addEventListener('pointerdown', collapse, true)
+    return () => document.removeEventListener('pointerdown', collapse, true)
   }, [])
 
   const visibleItems = useMemo(
     () =>
       [...items]
-        .sort((first, second) => second.confidence - first.confidence)
-        .slice(0, MAX_FLOATING_ITEMS),
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, MAX_VISIBLE),
     [items],
   )
 
-  const layouts = useMemo<CardLayout[]>(() => {
-    if (!imageBox) {
-      return []
+  const clearHover = useCallback(() => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
+    hoverTimeout.current = setTimeout(() => setHoveredId(null), 200)
+  }, [])
+
+  const keepHover = useCallback((id: string) => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
+    setHoveredId(id)
+  }, [])
+
+  const togglePin = useCallback((id: string) => {
+    setPinnedId((cur) => (cur === id ? null : id))
+  }, [])
+
+  const handleHotspotKey = (e: KeyboardEvent<HTMLButtonElement>, id: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      e.stopPropagation()
+      togglePin(id)
     }
-
-    const placedCards: Array<{
-      left: number
-      top: number
-      width: number
-      height: number
-    }> = []
-    const imageRight = imageBox.left + imageBox.width
-    const imageBottom = imageBox.top + imageBox.height
-
-    return visibleItems.map((item) => {
-      const [ymin, xmin, ymax, xmax] = item.bbox
-      const bboxLeft = imageBox.left + (xmin / 1000) * imageBox.width
-      const bboxTop = imageBox.top + (ymin / 1000) * imageBox.height
-      const bboxWidth = ((xmax - xmin) / 1000) * imageBox.width
-      const bboxHeight = ((ymax - ymin) / 1000) * imageBox.height
-      const bboxCenter = {
-        x: bboxLeft + bboxWidth / 2,
-        y: bboxTop + bboxHeight / 2,
-      }
-
-      const preferredLeft =
-        bboxLeft + bboxWidth + CARD_OFFSET + CARD_WIDTH > imageRight
-          ? bboxLeft - CARD_WIDTH - CARD_OFFSET
-          : bboxLeft + bboxWidth + CARD_OFFSET
-      const preferredTop =
-        bboxTop + CARD_OFFSET + CARD_HEIGHT > imageBottom
-          ? bboxTop + bboxHeight - CARD_HEIGHT - CARD_OFFSET
-          : bboxTop + CARD_OFFSET
-
-      const cardLeft = clamp(preferredLeft, imageBox.left, imageRight - CARD_WIDTH)
-      let cardTop = clamp(preferredTop, imageBox.top, imageBottom - CARD_HEIGHT)
-      let wasDisplaced = false
-
-      for (const placedCard of placedCards) {
-        const overlapRatio = getOverlapRatio(
-          { left: cardLeft, top: cardTop, width: CARD_WIDTH, height: CARD_HEIGHT },
-          placedCard,
-        )
-
-        if (overlapRatio > 0.25) {
-          cardTop = clamp(
-            placedCard.top + CARD_HEIGHT + STACK_GAP,
-            imageBox.top,
-            imageBottom - CARD_HEIGHT,
-          )
-          wasDisplaced = true
-        }
-      }
-
-      const cardRect = {
-        left: cardLeft,
-        top: cardTop,
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
-      }
-      placedCards.push(cardRect)
-
-      return {
-        item,
-        cardLeft,
-        cardTop,
-        leaderLine: wasDisplaced
-          ? buildLeaderLine(bboxCenter, {
-              x: cardLeft + CARD_WIDTH / 2,
-              y: cardTop + CARD_HEIGHT / 2,
-            })
-          : undefined,
-      }
-    })
-  }, [imageBox, visibleItems])
-
-  const toggleCard = (itemId: string) => {
-    setExpandedCardId((currentId) => (currentId === itemId ? null : itemId))
-  }
-
-  const handleCardKeyDown = (
-    event: KeyboardEvent<HTMLDivElement>,
-    itemId: string,
-  ) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      event.stopPropagation()
-      toggleCard(itemId)
-    }
-
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
-      setExpandedCardId(null)
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setPinnedId(null)
+      setHoveredId(null)
     }
   }
+
+  if (!imageBox) return <div ref={overlayRef} className="bbox-overlay" />
 
   return (
     <div ref={overlayRef} className="bbox-overlay" aria-label="Detected clothing items">
-      {layouts.map(({ item, cardLeft, cardTop, leaderLine }) => {
-        const isExpanded = expandedCardId === item.id
+      {visibleItems.map((item) => {
+        const [ymin, xmin, ymax, xmax] = item.bbox
+        const cx = imageBox.left + ((xmin + xmax) / 2000) * imageBox.width
+        const cy = imageBox.top + ((ymin + ymax) / 2000) * imageBox.height
+        const isBest = item.platforms.some((p) => p.platform === item.bestPlatform)
+        const glowColor =
+          isBest
+            ? (PLATFORM_GLOW[item.bestPlatform] ?? 'rgba(255,77,46,0.65)')
+            : 'rgba(255,255,255,0.55)'
+        const isOpen = hoveredId === item.id || pinnedId === item.id
+        const activeTab = activeTabByItem[item.id] ?? item.bestPlatform
+        const activeDeal =
+          item.platforms.find((p) => p.platform === activeTab) ?? item.platforms[0]
+
+        const imageRight = imageBox.left + imageBox.width
+        const imageBottom = imageBox.top + imageBox.height
+        let popX = cx + POPOVER_OFFSET
+        let popY = cy - POPOVER_HEIGHT_EST / 2
+        if (popX + POPOVER_WIDTH > imageRight) {
+          popX = cx - POPOVER_WIDTH - POPOVER_OFFSET
+        }
+        popX = clamp(popX, imageBox.left, imageRight - POPOVER_WIDTH)
+        popY = clamp(popY, imageBox.top, imageBottom - POPOVER_HEIGHT_EST)
 
         return (
-          <div key={item.id} className="floating-card-group">
-            {leaderLine && (
-              <span
-                className="floating-card-leader"
-                aria-hidden="true"
-                style={
-                  {
-                    '--leader-left': `${leaderLine.left}px`,
-                    '--leader-top': `${leaderLine.top}px`,
-                    '--leader-width': `${leaderLine.width}px`,
-                    '--leader-angle': `${leaderLine.angle}deg`,
-                  } as CSSProperties
-                }
-              />
-            )}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-expanded={isExpanded}
-              className={`floating-card ${isExpanded ? 'is-expanded' : ''}`}
+          <div key={item.id} className="hotspot-group">
+            <button
+              type="button"
+              className={`hotspot-btn${isOpen ? ' is-active' : ''}`}
+              aria-label={item.itemName}
+              aria-expanded={isOpen}
               style={
                 {
-                  '--card-left': `${cardLeft}px`,
-                  '--card-top': `${cardTop}px`,
-                  '--platform-accent': PLATFORM_ACCENTS[item.bestPlatform],
+                  '--hs-x': `${cx}px`,
+                  '--hs-y': `${cy}px`,
+                  '--hs-color': glowColor,
                 } as CSSProperties
               }
-              onClick={(event) => {
-                event.stopPropagation()
-                toggleCard(item.id)
+              onClick={(e) => {
+                e.stopPropagation()
+                togglePin(item.id)
               }}
-              onKeyDown={(event) => handleCardKeyDown(event, item.id)}
+              onMouseEnter={() => keepHover(item.id)}
+              onMouseLeave={clearHover}
+              onFocus={() => keepHover(item.id)}
+              onBlur={clearHover}
+              onKeyDown={(e) => handleHotspotKey(e, item.id)}
             >
-              <span className="floating-card-name">{item.itemName}</span>
-              <span className="floating-card-price">
-                ₱{getCheapestPrice(item).toLocaleString('en-PH')}
-              </span>
-              <div className="floating-card-expanded">
-                <span className="floating-card-meta">
-                  {item.category} · {item.color} · {item.style} · {item.materialHint}
-                </span>
-                <span className="floating-platform-pill">
-                  {PLATFORM_LABELS[item.bestPlatform]}
-                </span>
-                <p className="floating-best-reason">{item.bestBuyReason}</p>
+              <span className="hotspot-inner" aria-hidden="true" />
+            </button>
+
+            {isOpen && (
+              <div
+                className="hotspot-popover"
+                role="tooltip"
+                style={
+                  {
+                    '--pop-x': `${popX}px`,
+                    '--pop-y': `${popY}px`,
+                    '--platform-accent': PLATFORM_ACCENTS[item.bestPlatform],
+                  } as CSSProperties
+                }
+                onMouseEnter={() => keepHover(item.id)}
+                onMouseLeave={clearHover}
+              >
+                <div className="hotspot-popover-header">
+                  <span className="category-pill">{item.category}</span>
+                  <span className="confidence">
+                    {Math.round(item.confidence * 100)}% sure
+                  </span>
+                </div>
+
+                <p className="hotspot-popover-title">{item.itemName}</p>
+
+                <p className="hotspot-popover-meta">
+                  {item.color} · {item.style} · {item.materialHint}
+                </p>
+
+                {item.budgetNote && (
+                  <p className="hotspot-popover-note">{item.budgetNote}</p>
+                )}
+
+                <div
+                  className="hotspot-popover-tabs"
+                  role="tablist"
+                  aria-label={`${item.itemName} shops`}
+                >
+                  {item.platforms.map((deal) => (
+                    <button
+                      key={deal.platform}
+                      type="button"
+                      role="tab"
+                      aria-selected={deal.platform === activeTab}
+                      className={deal.platform === activeTab ? 'active' : ''}
+                      style={{ '--accent': PLATFORM_ACCENTS[deal.platform] } as CSSProperties}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setTabOverrides((cur) => ({ ...cur, [item.id]: deal.platform }))
+                      }}
+                    >
+                      <span>{PLATFORM_LABELS[deal.platform]}</span>
+                      {deal.platform === item.bestPlatform && (
+                        <span className="best-badge">Best</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="hotspot-popover-deal">
+                  <strong className="hotspot-deal-query">{activeDeal.query}</strong>
+                  <div className="hotspot-deal-row">
+                    <span className="hotspot-deal-price">
+                      ₱{activeDeal.estimatedPricePhp.toLocaleString('en-PH')}
+                    </span>
+                    <a
+                      className="hotspot-deal-link"
+                      href={activeDeal.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Open ${PLATFORM_LABELS[activeDeal.platform]} for ${activeDeal.query}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Open {PLATFORM_LABELS[activeDeal.platform]} →
+                    </a>
+                  </div>
+                </div>
+
+                <div className="hotspot-popover-bestbuy">
+                  <span className="hotspot-bestbuy-label">Best Buy</span>
+                  <span className="hotspot-bestbuy-platform">
+                    {PLATFORM_LABELS[item.bestPlatform]}
+                  </span>
+                  <span className="hotspot-bestbuy-reason">{item.bestBuyReason}</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )
       })}

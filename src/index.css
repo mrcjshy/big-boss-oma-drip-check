@@ -1167,6 +1167,295 @@ h3 {
   }
 }
 
+/* ───────── Hotspot overlay ───────── */
+
+.bbox-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hotspot-group {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hotspot-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  left: var(--hs-x);
+  top: var(--hs-y);
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.45),
+    0 0 12px 4px var(--hs-color, rgba(255, 77, 46, 0.55));
+  pointer-events: auto;
+  cursor: pointer;
+  animation: hotspot-pulse 2.2s ease-in-out infinite;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.hotspot-btn:hover,
+.hotspot-btn:focus-visible,
+.hotspot-btn.is-active {
+  transform: translate(-50%, -50%) scale(1.3);
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.7),
+    0 0 18px 8px var(--hs-color, rgba(255, 77, 46, 0.75));
+  animation: none;
+}
+
+.hotspot-btn:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.hotspot-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--hs-color, var(--accent));
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--ink);
+}
+
+@keyframes hotspot-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.45),
+      0 0 10px 3px var(--hs-color, rgba(255, 77, 46, 0.45));
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(255, 255, 255, 0.3),
+      0 0 18px 8px var(--hs-color, rgba(255, 77, 46, 0.65));
+  }
+}
+
+/* Hotspot popover card */
+
+.hotspot-popover {
+  position: absolute;
+  left: var(--pop-x);
+  top: var(--pop-y);
+  z-index: 10;
+  width: 220px;
+  display: grid;
+  gap: 8px;
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  color: var(--ink);
+  box-shadow:
+    var(--hard-shadow),
+    0 8px 32px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(16px);
+  pointer-events: auto;
+  animation: pop-in 140ms ease both;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.hotspot-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hotspot-popover-title {
+  font-family: "Bricolage Grotesque", "Inter", sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.hotspot-popover-meta {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.hotspot-popover-note {
+  border-left: 3px solid var(--accent);
+  padding: 3px 10px;
+  background: var(--accent-soft);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.hotspot-popover-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.hotspot-popover-tabs button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 6px 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 800;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+.hotspot-popover-tabs button:hover:not(.active) {
+  background: var(--bg-warm);
+  transform: translate(-1px, -1px);
+}
+
+.hotspot-popover-tabs button.active {
+  background: var(--ink);
+  color: var(--bg);
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 var(--accent);
+}
+
+.hotspot-popover-deal {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: var(--paper-soft);
+}
+
+.hotspot-deal-query {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.hotspot-deal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hotspot-deal-price {
+  font-family: "Bricolage Grotesque", "Inter", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.hotspot-deal-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  border: var(--border-w) solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 800;
+  font-size: 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+.hotspot-deal-link:hover {
+  background: var(--accent);
+  color: var(--ink);
+  transform: translate(-1px, -1px);
+}
+
+.hotspot-popover-bestbuy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: var(--lime);
+  color: var(--ink);
+}
+
+.hotspot-bestbuy-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: var(--paper);
+}
+
+.hotspot-bestbuy-platform {
+  font-family: "Bricolage Grotesque", "Inter", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.hotspot-bestbuy-reason {
+  width: 100%;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* ───────── has-results layout tweaks ───────── */
+
+.app-shell.has-results .hero {
+  padding-bottom: 0;
+}
+
+.app-shell.has-results .hero-text .hero-copy {
+  font-size: clamp(0.88rem, 1.4vw, 0.98rem);
+  color: var(--ink-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

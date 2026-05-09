@@ -108,7 +108,7 @@ function App() {
         </div>
       </header>
 
-      <main className="app-shell" id="top">
+      <main className={`app-shell${analysis ? ' has-results' : ''}`} id="top">
         <section className="hero">
           <div className="hero-text">
             <span className="eyebrow">Hyper-local fashion agent</span>
@@ -146,12 +146,14 @@ function App() {
               <span className="meta-label">Best-value total</span>
               <strong>₱{cheapestTotal.toLocaleString('en-PH')}</strong>
             </div>
-            <ol className="hero-flow">
-              <li>Detect items</li>
-              <li>Write PH queries</li>
-              <li>Compare prices</li>
-              <li>Recommend Best Buy</li>
-            </ol>
+            {!analysis && (
+              <ol className="hero-flow">
+                <li>Detect items</li>
+                <li>Write PH queries</li>
+                <li>Compare prices</li>
+                <li>Recommend Best Buy</li>
+              </ol>
+            )}
           </aside>
         </section>
 
@@ -220,7 +222,7 @@ function App() {
             </div>
           </article>
 
-          <aside className="status-card">
+          {(isLoading || !!error || isDemo || !analysis) && (<aside className="status-card">
             <header className="card-header">
               <span className="step-tag step-tag-accent">02 · Agent thinks</span>
               <h2>Analyze → Search → Compare → Pick</h2>
@@ -253,7 +255,7 @@ function App() {
                 </small>
               </div>
             )}
-          </aside>
+          </aside>)}
         </section>
 
         {analysis && (
