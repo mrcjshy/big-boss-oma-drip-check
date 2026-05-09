@@ -101,63 +101,84 @@ function App() {
             </span>
             <span className="wordmark-text">DRIP CHECK</span>
           </a>
-          <nav className="topbar-meta" aria-label="About this build">
-            <span className="topbar-chip">Manila · 2026</span>
-            <span className="topbar-chip topbar-chip-accent">Built with Gemini 2.5 Flash</span>
-          </nav>
         </div>
       </header>
 
-      <main className={`app-shell${analysis ? ' has-results' : ''}`} id="top">
+      <main
+        className={[
+          'app-shell',
+          analysis ? 'has-results' : '',
+          isLoading ? 'is-loading' : '',
+        ].filter(Boolean).join(' ')}
+        id="top"
+      >
         <section className="hero">
           <div className="hero-text">
-            <span className="eyebrow">Hyper-local fashion agent</span>
+            {!isLoading && !analysis && (
+              <span className="eyebrow">Hyper-local fashion agent</span>
+            )}
             <h1>
               Sino mas <em>tipid</em>?
               <br />
               Drip Check finds out.
             </h1>
-            <p className="hero-copy">
-              Upload a fit pic. Gemini identifies every clothing item, writes
-              PH-ready search queries for Shopee, Lazada, and ukay, then
-              compares prices and calls one Best Buy per item.
-            </p>
-            <div className="hero-actions">
-              <button
-                type="button"
-                className="primary-button"
-                disabled={isLoading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {isLoading ? 'Checking the fit...' : 'Upload your drip →'}
-              </button>
-              <span className="helper-text">
-                Or load a demo fit · Walang sign-in needed
-              </span>
-            </div>
+            {!isLoading && !analysis && (
+              <>
+                <p className="hero-copy">
+                  Upload a fit pic. Gemini identifies every clothing item, writes
+                  PH-ready search queries for Shopee, Lazada, and ukay, then
+                  compares prices and calls one Best Buy per item.
+                </p>
+                <div className="hero-actions">
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={isLoading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Upload your drip →
+                  </button>
+                  <span className="helper-text">
+                    Or load a demo fit · Walang sign-in needed
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
-          <aside className="hero-meta" aria-label="Live agent stats">
-            <div className="meta-row">
-              <span className="meta-label">Items found</span>
-              <strong>{totalItems}</strong>
-            </div>
-            <div className="meta-row meta-row-accent">
-              <span className="meta-label">Best-value total</span>
-              <strong>₱{cheapestTotal.toLocaleString('en-PH')}</strong>
-            </div>
-            {!analysis && (
+          {!isLoading && !analysis && (
+            <aside className="hero-meta" aria-label="Live agent stats">
+              <div className="meta-row">
+                <span className="meta-label">Items found</span>
+                <strong>{totalItems}</strong>
+              </div>
+              <div className="meta-row meta-row-accent">
+                <span className="meta-label">Best-value total</span>
+                <strong>₱{cheapestTotal.toLocaleString('en-PH')}</strong>
+              </div>
               <ol className="hero-flow">
                 <li>Detect items</li>
                 <li>Write PH queries</li>
                 <li>Compare prices</li>
                 <li>Recommend Best Buy</li>
               </ol>
-            )}
-          </aside>
+            </aside>
+          )}
         </section>
 
         <section className="workspace">
+          {(isLoading || !!analysis) && (
+            <aside className="hero-meta hero-meta-compact" aria-label="Live agent stats">
+              <div className="meta-row">
+                <span className="meta-label">Items found</span>
+                <strong>{totalItems}</strong>
+              </div>
+              <div className="meta-row meta-row-accent">
+                <span className="meta-label">Best-value total</span>
+                <strong>₱{cheapestTotal.toLocaleString('en-PH')}</strong>
+              </div>
+            </aside>
+          )}
           <article className="upload-card">
             <header className="card-header">
               <span className="step-tag">01 · Upload</span>

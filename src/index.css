@@ -183,37 +183,6 @@ p {
   letter-spacing: -0.04em;
 }
 
-.topbar-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.topbar-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: var(--border-w) solid var(--ink);
-  border-radius: 999px;
-  padding: 6px 12px;
-  background: var(--paper);
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.topbar-chip-accent {
-  background: var(--lime);
-}
-
-@media (max-width: 720px) {
-  .topbar-meta .topbar-chip:first-child {
-    display: none;
-  }
-}
 
 /* ───────── App shell ───────── */
 
@@ -880,14 +849,17 @@ h3 {
 }
 
 .item-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-4);
 }
 
 .item-card {
   position: relative;
   background: var(--paper);
+  flex: 0 1 380px;
+  min-width: 320px;
 }
 
 .item-card-header {
@@ -1445,15 +1417,55 @@ h3 {
   line-height: 1.4;
 }
 
-/* ───────── has-results layout tweaks ───────── */
+/* ───────── has-results / is-loading layout tweaks ───────── */
 
-.app-shell.has-results .hero {
+.app-shell.has-results .hero,
+.app-shell.is-loading .hero {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
   padding-bottom: 0;
+  gap: var(--space-2);
 }
 
-.app-shell.has-results .hero-text .hero-copy {
-  font-size: clamp(0.88rem, 1.4vw, 0.98rem);
-  color: var(--ink-muted);
+.app-shell.has-results .workspace,
+.app-shell.is-loading .workspace {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 640px);
+  align-items: start;
+  gap: var(--space-4);
+  justify-content: center;
+}
+
+.hero-meta-compact {
+  padding: var(--space-3);
+  align-self: start;
+  position: sticky;
+  top: 80px;
+}
+
+.hero-meta-compact .meta-row strong {
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+}
+
+.app-shell.has-results .upload-card,
+.app-shell.is-loading .upload-card {
+  max-height: calc(100dvh - 72px);
+  overflow: hidden;
+}
+
+.app-shell.has-results .dropzone,
+.app-shell.is-loading .dropzone {
+  min-height: 0;
+  height: calc(100dvh - 72px - 240px);
+  max-height: 520px;
+}
+
+@media (max-width: 900px) {
+  .app-shell.has-results .workspace,
+  .app-shell.is-loading .workspace {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
