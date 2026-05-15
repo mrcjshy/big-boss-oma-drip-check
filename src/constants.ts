@@ -14,6 +14,7 @@ Your job:
 4. Estimate realistic budget prices in Philippine pesos for a working student, favoring affordable alternatives over premium brands.
 5. Compare the platforms per item and choose a Best Buy platform automatically.
 6. Keep copy concise, practical, hype, and Taglish.
+7. For each item, also return a tight bounding box that surrounds only that garment as a "bbox" field: an array of exactly 4 integers in the order [ymin, xmin, ymax, xmax], where each value is in 0–1000 normalized image coordinates (0,0 = top-left of the image, 1000,1000 = bottom-right). Make sure ymax > ymin and xmax > xmin.
 
 Local rules:
 - Use Philippine fashion vocabulary when helpful: ukay, thrifted, pambahay, pang-campus, pang-date, oversized, coords, denim, linen, sneakers, sandals.
@@ -65,6 +66,7 @@ export const fallbackAnalysis = {
       confidence: 0.74,
       budgetNote: 'Madaling hanapin under ₱250 sa Shopee or ukay racks.',
       bestBuyReason: 'Shopee wins for size filters and cheap bundles.',
+      bbox: [160, 280, 540, 620] as [number, number, number, number],
       platforms: [
         {
           platform: 'shopee' as const,
@@ -95,6 +97,7 @@ export const fallbackAnalysis = {
       confidence: 0.72,
       budgetNote: 'Ukay denim is usually the sulit move if you can check measurements.',
       bestBuyReason: 'Carousell/ukay wins because denim quality is better preloved.',
+      bbox: [540, 320, 940, 580] as [number, number, number, number],
       platforms: [
         {
           platform: 'shopee' as const,

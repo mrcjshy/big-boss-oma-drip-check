@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import BboxOverlay from './components/BboxOverlay'
 import {
   PLATFORM_ACCENTS,
   PLATFORM_LABELS,
@@ -8,23 +9,23 @@ import {
 import { analyzeOutfit, getDemoAnalysis } from './geminiService'
 import type { OutfitAnalysis, PlatformId, SampleOutfit } from './types'
 
+const initialDemo = getDemoAnalysis()
+const initialActiveTabs: Record<string, PlatformId> = Object.fromEntries(
+  initialDemo.items.map((item) => [item.id, item.bestPlatform]),
+)
+
 function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const previewImgRef = useRef<HTMLImageElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string>(SAMPLE_OUTFITS[0].dataUrl)
-  const [analysis, setAnalysis] = useState<OutfitAnalysis | null>(null)
+  const [analysis, setAnalysis] = useState<OutfitAnalysis | null>(initialDemo)
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTabs, setActiveTabs] = useState<Record<string, PlatformId>>({})
+  const [activeTabs, setActiveTabs] =
+    useState<Record<string, PlatformId>>(initialActiveTabs)
   const [isDemo, setIsDemo] = useState(true)
-
-  useEffect(() => {
-    const demo = getDemoAnalysis()
-    setAnalysis(demo)
-    setActiveTabs(
-      Object.fromEntries(demo.items.map((item) => [item.id, item.bestPlatform])),
-    )
-  }, [])
+  const [hasStarted, setHasStarted] = useState(false)
 
   const totalItems = analysis?.items.length ?? 0
   const cheapestTotal = useMemo(
@@ -49,6 +50,7 @@ function App() {
     setError(null)
     setAnalysis(null)
     setIsDemo(false)
+    setHasStarted(true)
 
     try {
       const result = await analyzeOutfit(file)
@@ -103,12 +105,14 @@ function App() {
           </a>
           <nav className="topbar-meta" aria-label="About this build">
             <span className="topbar-chip">Manila · 2026</span>
-            <span className="topbar-chip topbar-chip-accent">Built with Gemini 2.5 Flash</span>
           </nav>
         </div>
       </header>
 
-      <main className="app-shell" id="top">
+      <main
+        className={`app-shell ${hasStarted ? 'app-shell--focused' : ''}`}
+        id="top"
+      >
         <section className="hero">
           <div className="hero-text">
             <span className="eyebrow">Hyper-local fashion agent</span>
@@ -189,7 +193,16 @@ function App() {
                 handleFiles(event.dataTransfer.files)
               }}
             >
-              <img src={previewUrl} alt="Uploaded outfit preview" />
+              <img
+                ref={previewImgRef}
+                src={previewUrl}
+                alt="Uploaded outfit preview"
+              />
+              <BboxOverlay
+                items={analysis?.items ?? []}
+                imgRef={previewImgRef}
+                visible={!isLoading && !!analysis}
+              />
               <span className="dropzone-cta">
                 {isDragging ? 'Bitawan mo na dito' : 'Drag-drop or tap to upload'}
               </span>
