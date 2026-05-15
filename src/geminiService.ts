@@ -1,3 +1,4 @@
+import { normalizeBbox } from '../shared/bbox'
 import {
   buildPlatformUrl,
   fallbackAnalysis,
@@ -13,6 +14,8 @@ import type {
   PlatformDeal,
   PlatformId,
 } from './types'
+
+export { normalizeBbox }
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
 
@@ -100,7 +103,6 @@ export const parseGeminiJson = (text: string): GeminiAnalysis => {
 const isPlatformId = (platform: string): platform is PlatformId =>
   platform === 'shopee' || platform === 'lazada' || platform === 'carousell'
 
-const MIN_BBOX_AREA = 5000
 const MIN_CONFIDENCE = 0.15
 
 export const normalizeDeal = (deal: GeminiPlatformDeal): PlatformDeal | null => {
@@ -119,25 +121,6 @@ export const normalizeDeal = (deal: GeminiPlatformDeal): PlatformDeal | null => 
     estimatedPricePhp: Math.round(price),
     reason: deal.reason || 'Sulit option for this item.',
   }
-}
-
-export const normalizeBbox = (
-  rawBbox: unknown,
-): [number, number, number, number] | null => {
-  if (!Array.isArray(rawBbox) || rawBbox.length !== 4) return null
-
-  const coerced = rawBbox.map((value) =>
-    Math.round(Math.min(1000, Math.max(0, Number(value) || 0))),
-  ) as [number, number, number, number]
-
-  const [ymin, xmin, ymax, xmax] = coerced
-
-  if (ymax <= ymin || xmax <= xmin) return null
-
-  const area = (ymax - ymin) * (xmax - xmin)
-  if (area < MIN_BBOX_AREA) return null
-
-  return [ymin, xmin, ymax, xmax]
 }
 
 export const normalizeAnalysis = (analysis: GeminiAnalysis): OutfitAnalysis => {

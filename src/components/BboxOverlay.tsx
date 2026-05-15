@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, RefObject } from 'react'
+import { mapBboxToDisplayedRect } from '../../shared/bbox'
 import { PLATFORM_ACCENTS, PLATFORM_LABELS } from '../constants'
 import type { ClothingItem } from '../types'
 
@@ -11,6 +12,10 @@ const HOVER_LEAVE_DELAY_MS = 160
 
 type DotLayout = {
   item: ClothingItem
+  bboxLeft: number
+  bboxTop: number
+  bboxWidth: number
+  bboxHeight: number
   bboxCenterX: number
   bboxCenterY: number
   popoverLeft: number
@@ -21,7 +26,12 @@ type DotLayout = {
   cheapestPrice: number
 }
 
-type Size = { width: number; height: number }
+type ImageMetrics = {
+  displayWidth: number
+  displayHeight: number
+  naturalWidth: number
+  naturalHeight: number
+}
 
 const cheapestPriceFor = (item: ClothingItem): number => {
   const prices = item.platforms
@@ -31,45 +41,56 @@ const cheapestPriceFor = (item: ClothingItem): number => {
   return Math.min(...prices)
 }
 
-const computeLayout = (items: ClothingItem[], size: Size): DotLayout[] => {
-  const { width, height } = size
+const computeLayout = (
+  items: ClothingItem[],
+  metrics: ImageMetrics,
+): DotLayout[] => {
+  const { displayWidth, displayHeight, naturalWidth, naturalHeight } = metrics
 
-  return items.map((item) => {
-    const [ymin, xmin, ymax, xmax] = item.bbox
-    const bboxLeft = (xmin / 1000) * width
-    const bboxTop = (ymin / 1000) * height
-    const bboxRight = (xmax / 1000) * width
-    const bboxBottom = (ymax / 1000) * height
-    const bboxCenterX = (bboxLeft + bboxRight) / 2
-    const bboxCenterY = (bboxTop + bboxBottom) / 2
+  return items.flatMap((item) => {
+    const rect = mapBboxToDisplayedRect(
+      item.bbox,
+      naturalWidth,
+      naturalHeight,
+      displayWidth,
+      displayHeight,
+      'cover',
+    )
+    if (!rect) return []
 
-    const popoverWidth = Math.min(POPOVER_WIDTH, Math.max(180, width - 24))
+    const popoverWidth = Math.min(POPOVER_WIDTH, Math.max(180, displayWidth - 24))
     const popoverHeight = POPOVER_HEIGHT_ESTIMATE
 
-    const spaceRight = width - bboxCenterX
+    const spaceRight = displayWidth - rect.centerX
     const placement: 'right' | 'left' =
       spaceRight >= popoverWidth + POPOVER_GAP + 8 ? 'right' : 'left'
 
     let popoverLeft =
       placement === 'right'
-        ? bboxCenterX + POPOVER_GAP
-        : bboxCenterX - POPOVER_GAP - popoverWidth
-    let popoverTop = bboxCenterY - popoverHeight / 2
+        ? rect.centerX + POPOVER_GAP
+        : rect.centerX - POPOVER_GAP - popoverWidth
+    let popoverTop = rect.centerY - popoverHeight / 2
 
-    popoverLeft = Math.max(8, Math.min(width - popoverWidth - 8, popoverLeft))
-    popoverTop = Math.max(8, Math.min(height - popoverHeight - 8, popoverTop))
+    popoverLeft = Math.max(8, Math.min(displayWidth - popoverWidth - 8, popoverLeft))
+    popoverTop = Math.max(8, Math.min(displayHeight - popoverHeight - 8, popoverTop))
 
-    return {
-      item,
-      bboxCenterX,
-      bboxCenterY,
-      popoverLeft,
-      popoverTop,
-      popoverWidth,
-      popoverHeight,
-      popoverPlacement: placement,
-      cheapestPrice: cheapestPriceFor(item),
-    }
+    return [
+      {
+        item,
+        bboxLeft: rect.left,
+        bboxTop: rect.top,
+        bboxWidth: rect.width,
+        bboxHeight: rect.height,
+        bboxCenterX: rect.centerX,
+        bboxCenterY: rect.centerY,
+        popoverLeft,
+        popoverTop,
+        popoverWidth,
+        popoverHeight,
+        popoverPlacement: placement,
+        cheapestPrice: cheapestPriceFor(item),
+      },
+    ]
   })
 }
 
@@ -226,12 +247,26 @@ type BboxOverlayProps = {
   visible: boolean
 }
 
+const DEBUG_QUERY_KEY = 'debugBbox'
+
+const isDebugEnabled = (): boolean => {
+  if (typeof window === 'undefined') return false
+  const value = new URLSearchParams(window.location.search).get(DEBUG_QUERY_KEY)
+  return value === '1' || value === 'true'
+}
+
 function BboxOverlay({ items, imgRef, visible }: BboxOverlayProps) {
-  const [size, setSize] = useState<Size>({ width: 0, height: 0 })
+  const [metrics, setMetrics] = useState<ImageMetrics>({
+    displayWidth: 0,
+    displayHeight: 0,
+    naturalWidth: 0,
+    naturalHeight: 0,
+  })
   const [pinnedId, setPinnedId] = useState<string | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const hoverTimerRef = useRef<number | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const debug = useMemo(() => isDebugEnabled(), [])
 
   useEffect(() => {
     const img = imgRef.current
@@ -239,7 +274,12 @@ function BboxOverlay({ items, imgRef, visible }: BboxOverlayProps) {
 
     const update = () => {
       const rect = img.getBoundingClientRect()
-      setSize({ width: rect.width, height: rect.height })
+      setMetrics({
+        displayWidth: rect.width,
+        displayHeight: rect.height,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+      })
     }
     update()
 
@@ -299,17 +339,19 @@ function BboxOverlay({ items, imgRef, visible }: BboxOverlayProps) {
 
   const layouts = useMemo(() => {
     if (!visible) return []
-    if (!size.width || !size.height) return []
+    if (!metrics.displayWidth || !metrics.displayHeight) return []
+    if (!metrics.naturalWidth || !metrics.naturalHeight) return []
 
     const top = [...items]
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, MAX_DOTS)
 
-    return computeLayout(top, size)
-  }, [items, size, visible])
+    return computeLayout(top, metrics)
+  }, [items, metrics, visible])
 
   if (!visible) return null
-  if (size.width === 0 || size.height === 0) return null
+  if (metrics.displayWidth === 0 || metrics.displayHeight === 0) return null
+  if (metrics.naturalWidth === 0 || metrics.naturalHeight === 0) return null
   if (layouts.length === 0) return null
 
   const cancelHoverLeave = () => {
@@ -342,11 +384,26 @@ function BboxOverlay({ items, imgRef, visible }: BboxOverlayProps) {
 
   return (
     <div ref={overlayRef} className="bbox-overlay" aria-hidden="false">
+      {debug &&
+        layouts.map((layout) => (
+          <div
+            key={`debug-${layout.item.id}`}
+            className="bbox-overlay__debug-rect"
+            style={{
+              left: `${layout.bboxLeft}px`,
+              top: `${layout.bboxTop}px`,
+              width: `${layout.bboxWidth}px`,
+              height: `${layout.bboxHeight}px`,
+            }}
+            aria-hidden="true"
+          />
+        ))}
+
       {activeLayout && (
         <svg
           className="bbox-overlay__leader"
-          width={size.width}
-          height={size.height}
+          width={metrics.displayWidth}
+          height={metrics.displayHeight}
           aria-hidden="true"
         >
           <line

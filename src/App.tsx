@@ -61,7 +61,12 @@ function App() {
       setActiveTabs(
         Object.fromEntries(response.analysis.items.map((item) => [item.id, item.bestPlatform])),
       )
-    } catch {
+    } catch (matchError) {
+      const isApiOffline =
+        matchError instanceof Error &&
+        (/\b502\b/i.test(matchError.message) ||
+          /bad gateway/i.test(matchError.message))
+
       try {
         const result = await analyzeOutfit(file)
         setAnalysis(result)
@@ -70,8 +75,9 @@ function App() {
           Object.fromEntries(result.items.map((item) => [item.id, item.bestPlatform])),
         )
       } catch (caughtError) {
-        const message =
-          caughtError instanceof Error
+        const message = isApiOffline
+          ? 'Start the API: npm run server'
+          : caughtError instanceof Error
             ? caughtError.message
             : 'May sumablay sa analysis. Try ulit with a clearer fit pic.'
         const demo = getDemoAnalysis()
@@ -188,38 +194,40 @@ function App() {
               onChange={(event) => handleFiles(event.target.files)}
             />
 
-            <button
-              type="button"
-              className={`dropzone ${isDragging ? 'dropzone-active' : ''}`}
-              disabled={isLoading}
-              aria-label="Upload outfit photo"
-              onClick={() => fileInputRef.current?.click()}
-              onDragEnter={(event) => {
-                event.preventDefault()
-                setIsDragging(true)
-              }}
-              onDragOver={(event) => event.preventDefault()}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(event) => {
-                event.preventDefault()
-                setIsDragging(false)
-                handleFiles(event.dataTransfer.files)
-              }}
-            >
-              <img
-                ref={previewImgRef}
-                src={previewUrl}
-                alt="Uploaded outfit preview"
-              />
+            <div className="dropzone-host">
+              <button
+                type="button"
+                className={`dropzone ${isDragging ? 'dropzone-active' : ''}`}
+                disabled={isLoading}
+                aria-label="Upload outfit photo"
+                onClick={() => fileInputRef.current?.click()}
+                onDragEnter={(event) => {
+                  event.preventDefault()
+                  setIsDragging(true)
+                }}
+                onDragOver={(event) => event.preventDefault()}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  setIsDragging(false)
+                  handleFiles(event.dataTransfer.files)
+                }}
+              >
+                <img
+                  ref={previewImgRef}
+                  src={previewUrl}
+                  alt="Uploaded outfit preview"
+                />
+                <span className="dropzone-cta">
+                  {isDragging ? 'Bitawan mo na dito' : 'Drag-drop or tap to upload'}
+                </span>
+              </button>
               <BboxOverlay
                 items={analysis?.items ?? []}
                 imgRef={previewImgRef}
                 visible={!isLoading && !!analysis}
               />
-              <span className="dropzone-cta">
-                {isDragging ? 'Bitawan mo na dito' : 'Drag-drop or tap to upload'}
-              </span>
-            </button>
+            </div>
 
             <div className="sample-row" aria-label="Sample outfits">
               {SAMPLE_OUTFITS.map((sample) => (
@@ -413,10 +421,6 @@ function App() {
         )}
 
         <footer className="page-footer">
-          <span>
-            Drip Check · A Filipino fashion finder demo for GDG Manila Build
-            with AI 2026.
-          </span>
           <span>
             No real-time prices. Estimates only. Hanapin pa rin ang totoong sale.
           </span>

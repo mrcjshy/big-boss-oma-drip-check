@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
+import { normalizeBbox } from '../shared/bbox'
 import { config } from './config'
 import { buildIndex } from './catalog/indexer'
 import { callGeminiVision } from './gemini'
@@ -34,8 +35,12 @@ For each detected item:
    - 0.7–0.89 = likely correct but partially occluded
    - 0.5–0.69 = best guess, significant uncertainty
    - Below 0.5 = do not include
-6. Return a tight bounding box [ymin, xmin, ymax, xmax] in 0–1000 normalized coordinates.
-   Must tightly surround ONLY that garment. No full-frame boxes.
+6. Return a tight bounding box [ymin, xmin, ymax, xmax] in 0–1000 normalized
+   over the FULL original uploaded image pixels (0,0 = top-left of the original
+   photo, 1000,1000 = bottom-right). Do NOT normalize over a cropped preview or
+   thumbnail — use the exact pixel extents of the image you were given. Must
+   tightly surround ONLY that garment, with no padding for context and no
+   full-frame boxes.
 7. Generate Filipino-optimized search queries for Shopee PH, Lazada PH, and Carousell/ukay.
 8. Estimate realistic budget prices in PHP for a working student.
 9. Compare platforms per item and choose a Best Buy automatically.
@@ -120,23 +125,6 @@ type RawGeminiAnalysis = {
 }
 
 const MIN_CONFIDENCE = 0.15
-const MIN_BBOX_AREA = 5000
-
-function hardenBbox(rawBbox: unknown): [number, number, number, number] | null {
-  if (!Array.isArray(rawBbox) || rawBbox.length !== 4) return null
-
-  const coerced = rawBbox.map(v =>
-    Math.round(Math.min(1000, Math.max(0, Number(v) || 0))),
-  ) as [number, number, number, number]
-
-  const [ymin, xmin, ymax, xmax] = coerced
-  if (ymax <= ymin || xmax <= xmin) return null
-
-  const area = (ymax - ymin) * (xmax - xmin)
-  if (area < MIN_BBOX_AREA) return null
-
-  return coerced
-}
 
 function hardenItems(raw: RawGeminiAnalysis): ParsedItem[] {
   return raw.items
@@ -151,7 +139,7 @@ function hardenItems(raw: RawGeminiAnalysis): ParsedItem[] {
       style: item.style,
       materialHint: item.materialHint,
       confidence: Math.min(1, Math.max(0, Number(item.confidence) || 0)),
-      bbox: hardenBbox(item.bbox),
+      bbox: normalizeBbox(item.bbox),
     }))
 }
 
@@ -172,7 +160,7 @@ function buildFullAnalysis(raw: RawGeminiAnalysis) {
   const items = raw.items
     .filter(item => Number(item.confidence) >= MIN_CONFIDENCE)
     .flatMap((item, index) => {
-      const bbox = hardenBbox(item.bbox)
+      const bbox = normalizeBbox(item.bbox)
       if (!bbox) return []
 
       const validDeals = item.platforms.flatMap(deal => {

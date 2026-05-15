@@ -1,6 +1,50 @@
-# React + TypeScript + Vite
+# Drip Check
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules. lezgo
+Fashion outfit analysis with Gemini and a local Express API.
+
+## Development
+
+### Environment
+
+Create `.env.local` in the project root (or add to `.env`) with a Gemini API key. The backend reads either name:
+
+- `GEMINI_API_KEY` (server-only)
+- `VITE_GEMINI_API_KEY` (also exposed to the Vite client if you use client-side Gemini calls)
+
+Restart dev processes after changing env files.
+
+### Run locally
+
+**Option A — two terminals (recommended on Windows):**
+
+```bash
+npm run server   # Express API on http://localhost:3001
+npm run dev      # Vite on http://localhost:5173
+```
+
+**Option B — one command (cross-platform):**
+
+```bash
+npm run dev:full
+```
+
+This uses `concurrently` to start both the API and Vite. The `&` shell background operator does not work reliably in PowerShell.
+
+### Verify the API
+
+```bash
+curl http://localhost:3001/api/health
+```
+
+Expected response: `{"status":"ok"}`
+
+The Vite dev server proxies `/api/*` to port 3001. If you only run `npm run dev` and the backend is down, browser requests to `/api/...` return **502 Bad Gateway** (proxy could not connect to `http://localhost:3001`).
+
+---
+
+## React + TypeScript + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
 
