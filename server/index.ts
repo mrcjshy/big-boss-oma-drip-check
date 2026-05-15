@@ -12,6 +12,7 @@ import { config } from './config'
 import { buildIndex } from './catalog/indexer'
 import { runAnalysis } from './core/analyze'
 import { ensureIndexLoaded } from './core/loadIndex'
+import { GeminiQuotaError } from './gemini'
 
 const app = express()
 app.use(cors())
@@ -40,6 +41,15 @@ app.post('/api/analyze', upload.single('image'), async (req, res) => {
 
     res.json(result)
   } catch (error) {
+    if (error instanceof GeminiQuotaError) {
+      console.warn('[Server] Gemini quota exhausted; client should show demo fallback.')
+      res.status(429).json({
+        error: 'Gemini quota napuno for now. Try ulit later.',
+        code: 'quota_exceeded',
+      })
+      return
+    }
+
     console.error('[Server] Analysis error:', error)
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Analysis failed',

@@ -19,6 +19,27 @@ export { normalizeBbox }
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
 
+/**
+ * Tagged error for Gemini quota / rate-limit failures (HTTP 429 or upstream
+ * "RESOURCE_EXHAUSTED"). Lets the UI skip the redundant client-side retry
+ * (same key would just 429 again) and route straight to the safe demo.
+ */
+export class GeminiQuotaError extends Error {
+  readonly kind = 'quota' as const
+  constructor(message = 'Gemini quota napuno for now.') {
+    super(message)
+    this.name = 'GeminiQuotaError'
+  }
+}
+
+export const isQuotaError = (err: unknown): err is GeminiQuotaError =>
+  err instanceof GeminiQuotaError ||
+  (err instanceof Error &&
+    (/\b429\b/.test(err.message) ||
+      /quota/i.test(err.message) ||
+      /rate.?limit/i.test(err.message) ||
+      /resource.?exhausted/i.test(err.message)))
+
 const responseSchema = {
   type: 'OBJECT',
   properties: {
@@ -213,6 +234,9 @@ export const analyzeOutfit = async (file: File): Promise<OutfitAnalysis> => {
 
   if (!response.ok) {
     const errorText = await response.text()
+    if (response.status === 429 || /quota|rate.?limit|resource.?exhausted/i.test(errorText)) {
+      throw new GeminiQuotaError()
+    }
     throw new Error(`Gemini API error: ${response.status}. ${errorText.slice(0, 180)}`)
   }
 
@@ -236,8 +260,18 @@ export const matchOutfit = async (file: File): Promise<AnalyzeResponse> => {
   })
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: 'Server unavailable' })) as { error?: string }
-    throw new Error(payload.error || `Server error: ${response.status}`)
+    const payload = await response.json().catch(() => ({ error: 'Server unavailable' })) as {
+      error?: string
+      code?: string
+    }
+    if (response.status === 429 || payload.code === 'quota_exceeded') {
+      throw new GeminiQuotaError(payload.error || 'Gemini quota napuno for now.')
+    }
+    const message = payload.error || `Server error: ${response.status}`
+    if (/quota|rate.?limit|resource.?exhausted|\b429\b/i.test(message)) {
+      throw new GeminiQuotaError(message)
+    }
+    throw new Error(message)
   }
 
   return response.json() as Promise<AnalyzeResponse>

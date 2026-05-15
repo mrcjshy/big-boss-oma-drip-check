@@ -23,6 +23,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import formidable, { type File as FormidableFile } from 'formidable'
 import { readFile, unlink } from 'node:fs/promises'
 import { runAnalysis } from '../server/core/analyze'
+import { GeminiQuotaError } from '../server/gemini'
 import { ensureIndexLoaded } from '../server/core/loadIndex'
 
 export const config = {
@@ -134,6 +135,18 @@ export default async function handler(
 
     res.status(200).json(result)
   } catch (error) {
+    if (error instanceof GeminiQuotaError) {
+      // Log enough to debug, but never echo Google's raw quota JSON to the
+      // browser — it contains the model id and a billing URL we don't want
+      // to leak in toasts.
+      console.warn('[api/analyze] Gemini quota exhausted; client should show demo fallback.')
+      res.status(429).json({
+        error: 'Gemini quota napuno for now. Try ulit later.',
+        code: 'quota_exceeded',
+      })
+      return
+    }
+
     console.error('[api/analyze] Analysis error:', error)
     const message = error instanceof Error ? error.message : 'Analysis failed'
     res.status(500).json({ error: sanitizeErrorMessage(message) })

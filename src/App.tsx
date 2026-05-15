@@ -6,8 +6,16 @@ import {
   PLATFORM_LABELS,
   SAMPLE_OUTFITS,
 } from './constants'
-import { analyzeOutfit, getDemoAnalysis, matchOutfit } from './geminiService'
+import {
+  analyzeOutfit,
+  getDemoAnalysis,
+  isQuotaError,
+  matchOutfit,
+} from './geminiService'
 import type { MatchResult, OutfitAnalysis, PlatformId, SampleOutfit } from './types'
+
+const QUOTA_MESSAGE =
+  'Gemini quota napuno for now (free tier maxed out). Showing safe demo output muna — try ulit later or plug in your own VITE_GEMINI_API_KEY.'
 
 const initialDemo = getDemoAnalysis()
 const initialActiveTabs: Record<string, PlatformId> = Object.fromEntries(
@@ -27,6 +35,18 @@ function App() {
     useState<Record<string, PlatformId>>(initialActiveTabs)
   const [isDemo, setIsDemo] = useState(true)
   const [hasStarted, setHasStarted] = useState(false)
+  const [quotaExhausted, setQuotaExhausted] = useState(false)
+
+  const showDemo = (reason: string | null) => {
+    const demo = getDemoAnalysis()
+    setAnalysis(demo)
+    setMatchResult(null)
+    setActiveTabs(
+      Object.fromEntries(demo.items.map((item) => [item.id, item.bestPlatform])),
+    )
+    setIsDemo(true)
+    setError(reason)
+  }
 
   const totalItems = analysis?.items.length ?? 0
   const cheapestTotal = useMemo(
@@ -47,12 +67,20 @@ function App() {
     }
 
     setPreviewUrl(fallbackPreview ?? URL.createObjectURL(file))
+    setHasStarted(true)
+
+    // Short-circuit: if Gemini already told us the quota is empty, don't
+    // burn another request — go straight to the safe demo output.
+    if (quotaExhausted) {
+      showDemo(QUOTA_MESSAGE)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     setAnalysis(null)
     setMatchResult(null)
     setIsDemo(false)
-    setHasStarted(true)
 
     try {
       const response = await matchOutfit(file)
@@ -62,6 +90,14 @@ function App() {
         Object.fromEntries(response.analysis.items.map((item) => [item.id, item.bestPlatform])),
       )
     } catch (matchError) {
+      // Quota out on the server route → the client-side Gemini call uses the
+      // same key and will also 429. Skip it and show the demo immediately.
+      if (isQuotaError(matchError)) {
+        setQuotaExhausted(true)
+        showDemo(QUOTA_MESSAGE)
+        return
+      }
+
       const isApiOffline =
         matchError instanceof Error &&
         (/\b502\b/i.test(matchError.message) ||
@@ -75,20 +111,19 @@ function App() {
           Object.fromEntries(result.items.map((item) => [item.id, item.bestPlatform])),
         )
       } catch (caughtError) {
+        if (isQuotaError(caughtError)) {
+          setQuotaExhausted(true)
+          showDemo(QUOTA_MESSAGE)
+          return
+        }
+
         const message = isApiOffline
           ? 'Start the API: npm run server'
           : caughtError instanceof Error
             ? caughtError.message
             : 'May sumablay sa analysis. Try ulit with a clearer fit pic.'
-        const demo = getDemoAnalysis()
 
-        setError(`${message} Showing safe demo output muna.`)
-        setAnalysis(demo)
-        setMatchResult(null)
-        setActiveTabs(
-          Object.fromEntries(demo.items.map((item) => [item.id, item.bestPlatform])),
-        )
-        setIsDemo(true)
+        showDemo(`${message} Showing safe demo output muna.`)
       }
     } finally {
       setIsLoading(false)
