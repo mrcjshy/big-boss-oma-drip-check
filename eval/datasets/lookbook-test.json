@@ -1,0 +1,61 @@
+{
+  "description": "Test split for final validation. Do NOT tune thresholds on this split.",
+  "entries": [
+    {
+      "id": "test-001",
+      "expectedLookId": "look-001",
+      "items": [
+        { "itemName": "Black graphic oversized tee", "category": "Top", "color": "Black", "style": "Streetwear", "materialHint": "Cotton", "confidence": 0.85 },
+        { "itemName": "Straight leg jeans", "category": "Bottom", "color": "Light blue", "style": "Casual", "materialHint": "Denim", "confidence": 0.83 },
+        { "itemName": "White chunky sneakers", "category": "Footwear", "color": "White", "style": "Streetwear", "materialHint": "Synthetic leather", "confidence": 0.79 }
+      ]
+    },
+    {
+      "id": "test-002",
+      "expectedLookId": "look-002",
+      "items": [
+        { "itemName": "Cream knit top", "category": "Top", "color": "Beige / cream", "style": "Smart Casual", "materialHint": "Knit", "confidence": 0.88 },
+        { "itemName": "Wide leg brown trousers", "category": "Bottom", "color": "Brown", "style": "Smart Casual", "materialHint": "Linen", "confidence": 0.84 },
+        { "itemName": "Brown loafers", "category": "Footwear", "color": "Brown", "style": "Smart Casual", "materialHint": "Faux leather", "confidence": 0.80 }
+      ]
+    },
+    {
+      "id": "test-003",
+      "expectedLookId": "look-003",
+      "items": [
+        { "itemName": "Pink halter satin top", "category": "Top", "color": "Pink", "style": "Y2K", "materialHint": "Satin", "confidence": 0.87 },
+        { "itemName": "Olive cargo pants low-rise", "category": "Bottom", "color": "Olive", "style": "Y2K", "materialHint": "Cotton", "confidence": 0.82 },
+        { "itemName": "Black platform sandals", "category": "Footwear", "color": "Black", "style": "Y2K", "materialHint": "Synthetic", "confidence": 0.81 }
+      ]
+    },
+    {
+      "id": "test-004",
+      "expectedLookId": "look-005",
+      "items": [
+        { "itemName": "Gray oversized hoodie", "category": "Outerwear", "color": "Gray", "style": "Casual", "materialHint": "Cotton fleece", "confidence": 0.91 },
+        { "itemName": "Black joggers", "category": "Bottom", "color": "Black", "style": "Athleisure", "materialHint": "Terry cotton", "confidence": 0.86 },
+        { "itemName": "Black rubber slides", "category": "Footwear", "color": "Black", "style": "Casual", "materialHint": "Rubber", "confidence": 0.83 }
+      ]
+    },
+    {
+      "id": "test-005",
+      "expectedLookId": null,
+      "note": "Distractor — formal suit not in lookbook",
+      "items": [
+        { "itemName": "Blazer", "category": "Outerwear", "color": "Charcoal gray", "style": "Formal", "materialHint": "Wool blend", "confidence": 0.90 },
+        { "itemName": "Dress shirt", "category": "Top", "color": "White", "style": "Formal", "materialHint": "Cotton", "confidence": 0.88 },
+        { "itemName": "Dress pants", "category": "Bottom", "color": "Charcoal gray", "style": "Formal", "materialHint": "Wool blend", "confidence": 0.87 },
+        { "itemName": "Oxford shoes", "category": "Footwear", "color": "Black", "style": "Formal", "materialHint": "Leather", "confidence": 0.85 }
+      ]
+    },
+    {
+      "id": "test-006",
+      "expectedLookId": "look-004",
+      "items": [
+        { "itemName": "Button-down blouse", "category": "Top", "color": "White", "style": "Formal", "materialHint": "Cotton poplin", "confidence": 0.89 },
+        { "itemName": "Pencil skirt", "category": "Bottom", "color": "Navy blue", "style": "Formal", "materialHint": "Polyester", "confidence": 0.84 },
+        { "itemName": "Nude pointed flats", "category": "Footwear", "color": "Nude", "style": "Formal", "materialHint": "Faux leather", "confidence": 0.80 }
+      ]
+    }
+  ]
+}

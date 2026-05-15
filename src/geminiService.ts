@@ -5,6 +5,7 @@ import {
   GEMINI_SYSTEM_PROMPT,
 } from './constants'
 import type {
+  AnalyzeResponse,
   ClothingItem,
   GeminiAnalysis,
   GeminiPlatformDeal,
@@ -85,7 +86,7 @@ const fileToBase64 = (file: File) =>
     reader.readAsDataURL(file)
   })
 
-const parseGeminiJson = (text: string): GeminiAnalysis => {
+export const parseGeminiJson = (text: string): GeminiAnalysis => {
   const cleaned = text
     .trim()
     .replace(/^```json\s*/i, '')
@@ -99,28 +100,31 @@ const parseGeminiJson = (text: string): GeminiAnalysis => {
 const isPlatformId = (platform: string): platform is PlatformId =>
   platform === 'shopee' || platform === 'lazada' || platform === 'carousell'
 
-const normalizeDeal = (deal: GeminiPlatformDeal): PlatformDeal => {
-  const platform = isPlatformId(deal.platform) ? deal.platform : 'shopee'
-  const query = deal.query?.trim() || 'affordable outfit philippines'
+const MIN_BBOX_AREA = 5000
+const MIN_CONFIDENCE = 0.15
+
+export const normalizeDeal = (deal: GeminiPlatformDeal): PlatformDeal | null => {
+  if (!isPlatformId(deal.platform)) return null
+
+  const query = deal.query?.trim()
+  if (!query) return null
+
+  const price = Number(deal.estimatedPricePhp)
+  if (!Number.isFinite(price) || price <= 0) return null
 
   return {
-    platform,
+    platform: deal.platform,
     query,
-    url: buildPlatformUrl(platform, query),
-    estimatedPricePhp: Math.max(1, Math.round(Number(deal.estimatedPricePhp) || 999)),
+    url: buildPlatformUrl(deal.platform, query),
+    estimatedPricePhp: Math.round(price),
     reason: deal.reason || 'Sulit option for this item.',
   }
 }
 
-const FALLBACK_BBOX: [number, number, number, number] = [0, 0, 1000, 1000]
-
-const normalizeBbox = (
+export const normalizeBbox = (
   rawBbox: unknown,
-  itemPayload: unknown,
 ): [number, number, number, number] | null => {
-  if (!Array.isArray(rawBbox) || rawBbox.length !== 4) {
-    return FALLBACK_BBOX
-  }
+  if (!Array.isArray(rawBbox) || rawBbox.length !== 4) return null
 
   const coerced = rawBbox.map((value) =>
     Math.round(Math.min(1000, Math.max(0, Number(value) || 0))),
@@ -128,23 +132,28 @@ const normalizeBbox = (
 
   const [ymin, xmin, ymax, xmax] = coerced
 
-  if (ymax <= ymin || xmax <= xmin) {
-    console.warn('[Drip Check] Skipping item with invalid bbox', {
-      bbox: rawBbox,
-      item: itemPayload,
-    })
-    return null
-  }
+  if (ymax <= ymin || xmax <= xmin) return null
+
+  const area = (ymax - ymin) * (xmax - xmin)
+  if (area < MIN_BBOX_AREA) return null
 
   return [ymin, xmin, ymax, xmax]
 }
 
-const normalizeAnalysis = (analysis: GeminiAnalysis): OutfitAnalysis => {
+export const normalizeAnalysis = (analysis: GeminiAnalysis): OutfitAnalysis => {
   const items: ClothingItem[] = analysis.items.flatMap((item, index) => {
-    const bbox = normalizeBbox(item.bbox, item)
+    const confidence = Math.min(1, Math.max(0, Number(item.confidence) || 0))
+    if (confidence < MIN_CONFIDENCE) return []
+
+    const bbox = normalizeBbox(item.bbox)
     if (!bbox) return []
 
-    const platforms = item.platforms.map(normalizeDeal)
+    const platforms = item.platforms.flatMap((deal) => {
+      const normalized = normalizeDeal(deal)
+      return normalized ? [normalized] : []
+    })
+    if (platforms.length === 0) return []
+
     const bestDeal = [...platforms].sort(
       (a, b) => a.estimatedPricePhp - b.estimatedPricePhp,
     )[0]
@@ -157,7 +166,7 @@ const normalizeAnalysis = (analysis: GeminiAnalysis): OutfitAnalysis => {
         color: item.color,
         style: item.style,
         materialHint: item.materialHint,
-        confidence: Math.min(1, Math.max(0, Number(item.confidence) || 0.5)),
+        confidence,
         budgetNote: item.budgetNote,
         platforms,
         bestPlatform: bestDeal.platform,
@@ -232,4 +241,21 @@ export const analyzeOutfit = async (file: File): Promise<OutfitAnalysis> => {
   }
 
   return normalizeAnalysis(parseGeminiJson(text))
+}
+
+export const matchOutfit = async (file: File): Promise<AnalyzeResponse> => {
+  const formData = new FormData()
+  formData.append('image', file)
+
+  const response = await fetch('/api/analyze', {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ error: 'Server unavailable' })) as { error?: string }
+    throw new Error(payload.error || `Server error: ${response.status}`)
+  }
+
+  return response.json() as Promise<AnalyzeResponse>
 }

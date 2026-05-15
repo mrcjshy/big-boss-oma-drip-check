@@ -1,0 +1,80 @@
+{
+  "description": "Dev split for threshold tuning. Each entry has pre-extracted items (simulating Gemini output) and the expected lookId.",
+  "entries": [
+    {
+      "id": "dev-001",
+      "expectedLookId": "look-001",
+      "items": [
+        { "itemName": "Oversized graphic tee", "category": "Top", "color": "Black", "style": "Streetwear", "materialHint": "Cotton jersey", "confidence": 0.92 },
+        { "itemName": "Straight-leg denim jeans", "category": "Bottom", "color": "Light blue", "style": "Casual", "materialHint": "Denim", "confidence": 0.88 },
+        { "itemName": "Chunky sneakers", "category": "Footwear", "color": "White", "style": "Streetwear", "materialHint": "Synthetic", "confidence": 0.85 }
+      ]
+    },
+    {
+      "id": "dev-002",
+      "expectedLookId": "look-002",
+      "items": [
+        { "itemName": "Knit crop top", "category": "Top", "color": "Cream", "style": "Smart Casual", "materialHint": "Knit cotton", "confidence": 0.90 },
+        { "itemName": "Wide-leg trousers", "category": "Bottom", "color": "Brown", "style": "Smart Casual", "materialHint": "Linen blend", "confidence": 0.87 },
+        { "itemName": "Loafers", "category": "Footwear", "color": "Dark brown", "style": "Smart Casual", "materialHint": "Faux leather", "confidence": 0.82 }
+      ]
+    },
+    {
+      "id": "dev-003",
+      "expectedLookId": "look-001",
+      "note": "Slightly noisy variant — different wording, partial occlusion on shoes",
+      "items": [
+        { "itemName": "Oversized black tee", "category": "Top", "color": "Black / dark gray", "style": "Street", "materialHint": "Cotton", "confidence": 0.80 },
+        { "itemName": "Light wash jeans straight cut", "category": "Bottom", "color": "Light blue wash", "style": "Casual", "materialHint": "Denim", "confidence": 0.78 },
+        { "itemName": "White chunky trainers", "category": "Footwear", "color": "White", "style": "Sporty", "materialHint": "Leather / mesh", "confidence": 0.55 }
+      ]
+    },
+    {
+      "id": "dev-004",
+      "expectedLookId": "look-003",
+      "items": [
+        { "itemName": "Satin halter top", "category": "Top", "color": "Pink", "style": "Y2K", "materialHint": "Satin", "confidence": 0.91 },
+        { "itemName": "Low-rise cargo pants", "category": "Bottom", "color": "Olive green", "style": "Y2K", "materialHint": "Cotton twill", "confidence": 0.86 },
+        { "itemName": "Platform sandals", "category": "Footwear", "color": "Black", "style": "Y2K", "materialHint": "Synthetic", "confidence": 0.84 }
+      ]
+    },
+    {
+      "id": "dev-005",
+      "expectedLookId": "look-005",
+      "items": [
+        { "itemName": "Hoodie oversized", "category": "Outerwear", "color": "Gray", "style": "Casual", "materialHint": "Fleece", "confidence": 0.89 },
+        { "itemName": "Jogger pants", "category": "Bottom", "color": "Black", "style": "Athleisure", "materialHint": "French terry", "confidence": 0.87 },
+        { "itemName": "Slides", "category": "Footwear", "color": "Black", "style": "Casual", "materialHint": "Rubber", "confidence": 0.80 }
+      ]
+    },
+    {
+      "id": "dev-006",
+      "expectedLookId": "look-004",
+      "note": "Noisier variant with partial detection",
+      "items": [
+        { "itemName": "White button-down shirt", "category": "Top", "color": "White", "style": "Formal", "materialHint": "Cotton", "confidence": 0.88 },
+        { "itemName": "Navy pencil skirt", "category": "Bottom", "color": "Navy", "style": "Formal", "materialHint": "Polyester", "confidence": 0.75 }
+      ]
+    },
+    {
+      "id": "dev-007",
+      "expectedLookId": null,
+      "note": "Distractor — outfit not in lookbook",
+      "items": [
+        { "itemName": "Leather jacket", "category": "Outerwear", "color": "Black", "style": "Rock", "materialHint": "Faux leather", "confidence": 0.90 },
+        { "itemName": "Ripped skinny jeans", "category": "Bottom", "color": "Dark blue", "style": "Rock", "materialHint": "Denim", "confidence": 0.85 },
+        { "itemName": "Combat boots", "category": "Footwear", "color": "Black", "style": "Rock", "materialHint": "Leather", "confidence": 0.88 }
+      ]
+    },
+    {
+      "id": "dev-008",
+      "expectedLookId": null,
+      "note": "Distractor — athleisure not in lookbook",
+      "items": [
+        { "itemName": "Sports bra", "category": "Top", "color": "Neon green", "style": "Athleisure", "materialHint": "Polyester spandex", "confidence": 0.92 },
+        { "itemName": "Cycling shorts", "category": "Bottom", "color": "Black", "style": "Athleisure", "materialHint": "Lycra", "confidence": 0.88 },
+        { "itemName": "Running shoes", "category": "Footwear", "color": "White / neon", "style": "Athletic", "materialHint": "Mesh", "confidence": 0.90 }
+      ]
+    }
+  ]
+}

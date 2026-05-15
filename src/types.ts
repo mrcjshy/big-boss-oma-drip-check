@@ -46,3 +46,26 @@ export type SampleOutfit = {
   caption: string
   dataUrl: string
 }
+
+export type MatchCandidate = {
+  lookId: string
+  lookName: string
+  matchScore: number
+  vectorScore: number
+  attributeScore: number
+  explanations: string[]
+}
+
+export type ConfidenceLevel = 'high' | 'medium' | 'low'
+
+export type MatchResult = {
+  topMatch: MatchCandidate | null
+  candidates: MatchCandidate[]
+  isLowConfidence: boolean
+  confidenceLevel: ConfidenceLevel
+}
+
+export type AnalyzeResponse = {
+  analysis: OutfitAnalysis
+  match: MatchResult
+}

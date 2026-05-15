@@ -6,8 +6,8 @@ import {
   PLATFORM_LABELS,
   SAMPLE_OUTFITS,
 } from './constants'
-import { analyzeOutfit, getDemoAnalysis } from './geminiService'
-import type { OutfitAnalysis, PlatformId, SampleOutfit } from './types'
+import { analyzeOutfit, getDemoAnalysis, matchOutfit } from './geminiService'
+import type { MatchResult, OutfitAnalysis, PlatformId, SampleOutfit } from './types'
 
 const initialDemo = getDemoAnalysis()
 const initialActiveTabs: Record<string, PlatformId> = Object.fromEntries(
@@ -19,6 +19,7 @@ function App() {
   const previewImgRef = useRef<HTMLImageElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string>(SAMPLE_OUTFITS[0].dataUrl)
   const [analysis, setAnalysis] = useState<OutfitAnalysis | null>(initialDemo)
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,28 +50,40 @@ function App() {
     setIsLoading(true)
     setError(null)
     setAnalysis(null)
+    setMatchResult(null)
     setIsDemo(false)
     setHasStarted(true)
 
     try {
-      const result = await analyzeOutfit(file)
-      setAnalysis(result)
+      const response = await matchOutfit(file)
+      setAnalysis(response.analysis)
+      setMatchResult(response.match)
       setActiveTabs(
-        Object.fromEntries(result.items.map((item) => [item.id, item.bestPlatform])),
+        Object.fromEntries(response.analysis.items.map((item) => [item.id, item.bestPlatform])),
       )
-    } catch (caughtError) {
-      const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'May sumablay sa analysis. Try ulit with a clearer fit pic.'
-      const demo = getDemoAnalysis()
+    } catch {
+      try {
+        const result = await analyzeOutfit(file)
+        setAnalysis(result)
+        setMatchResult(null)
+        setActiveTabs(
+          Object.fromEntries(result.items.map((item) => [item.id, item.bestPlatform])),
+        )
+      } catch (caughtError) {
+        const message =
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'May sumablay sa analysis. Try ulit with a clearer fit pic.'
+        const demo = getDemoAnalysis()
 
-      setError(`${message} Showing safe demo output muna.`)
-      setAnalysis(demo)
-      setActiveTabs(
-        Object.fromEntries(demo.items.map((item) => [item.id, item.bestPlatform])),
-      )
-      setIsDemo(true)
+        setError(`${message} Showing safe demo output muna.`)
+        setAnalysis(demo)
+        setMatchResult(null)
+        setActiveTabs(
+          Object.fromEntries(demo.items.map((item) => [item.id, item.bestPlatform])),
+        )
+        setIsDemo(true)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -257,6 +270,42 @@ function App() {
                   <span className="tipid-tag">Tipid tip</span>
                   {analysis.tipidTip}
                 </small>
+              </div>
+            )}
+
+            {matchResult && !isDemo && (
+              <div className="vibe-card" style={{ marginTop: '0.75rem' }}>
+                <span className="vibe-label">
+                  {matchResult.confidenceLevel === 'high'
+                    ? 'Match Found'
+                    : matchResult.confidenceLevel === 'medium'
+                      ? 'Possible Matches'
+                      : 'No Confident Match'}
+                </span>
+                {matchResult.confidenceLevel === 'high' && matchResult.topMatch && (
+                  <strong>
+                    {matchResult.topMatch.lookName} — {Math.round(matchResult.topMatch.matchScore * 100)}% match
+                  </strong>
+                )}
+                {matchResult.confidenceLevel === 'medium' && (
+                  <ul style={{ margin: '0.5rem 0', paddingLeft: '1.25rem' }}>
+                    {matchResult.candidates.map((c) => (
+                      <li key={c.lookId}>
+                        <strong>{c.lookName}</strong> — {Math.round(c.matchScore * 100)}%
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {matchResult.confidenceLevel === 'low' && (
+                  <p style={{ opacity: 0.7 }}>
+                    This outfit didn't closely match any look in the catalog. Try a clearer photo or a different angle.
+                  </p>
+                )}
+                {matchResult.topMatch && matchResult.topMatch.explanations.length > 0 && (
+                  <small style={{ display: 'block', marginTop: '0.25rem', opacity: 0.6 }}>
+                    {matchResult.topMatch.explanations.join(' · ')}
+                  </small>
+                )}
               </div>
             )}
           </aside>

@@ -1,0 +1,149 @@
+{
+  "looks": [
+    {
+      "lookId": "look-001",
+      "name": "Campus Street",
+      "tags": ["streetwear", "casual", "campus", "student"],
+      "items": [
+        {
+          "itemName": "Oversized graphic tee",
+          "category": "Top",
+          "color": "Black",
+          "style": "Streetwear",
+          "materialHint": "Cotton jersey"
+        },
+        {
+          "itemName": "Straight-leg denim jeans",
+          "category": "Bottom",
+          "color": "Light blue",
+          "style": "Casual",
+          "materialHint": "Denim"
+        },
+        {
+          "itemName": "Chunky sneakers",
+          "category": "Footwear",
+          "color": "White",
+          "style": "Streetwear",
+          "materialHint": "Synthetic leather"
+        }
+      ],
+      "imagePath": "lookbook/look-001.jpg"
+    },
+    {
+      "lookId": "look-002",
+      "name": "Cafe Date",
+      "tags": ["smart casual", "date", "earth tones", "relaxed"],
+      "items": [
+        {
+          "itemName": "Knit crop top",
+          "category": "Top",
+          "color": "Cream / beige",
+          "style": "Smart Casual",
+          "materialHint": "Knit cotton"
+        },
+        {
+          "itemName": "Wide-leg trousers",
+          "category": "Bottom",
+          "color": "Brown",
+          "style": "Smart Casual",
+          "materialHint": "Linen blend"
+        },
+        {
+          "itemName": "Loafers",
+          "category": "Footwear",
+          "color": "Dark brown",
+          "style": "Smart Casual",
+          "materialHint": "Faux leather"
+        }
+      ],
+      "imagePath": "lookbook/look-002.jpg"
+    },
+    {
+      "lookId": "look-003",
+      "name": "Y2K Party",
+      "tags": ["y2k", "party", "going out", "trendy"],
+      "items": [
+        {
+          "itemName": "Halter top",
+          "category": "Top",
+          "color": "Pink",
+          "style": "Y2K",
+          "materialHint": "Satin"
+        },
+        {
+          "itemName": "Low-rise cargo pants",
+          "category": "Bottom",
+          "color": "Olive green",
+          "style": "Y2K",
+          "materialHint": "Cotton twill"
+        },
+        {
+          "itemName": "Platform sandals",
+          "category": "Footwear",
+          "color": "Black",
+          "style": "Y2K",
+          "materialHint": "Synthetic"
+        }
+      ],
+      "imagePath": "lookbook/look-003.jpg"
+    },
+    {
+      "lookId": "look-004",
+      "name": "Office Ready",
+      "tags": ["formal", "office", "corporate", "professional"],
+      "items": [
+        {
+          "itemName": "Button-down blouse",
+          "category": "Top",
+          "color": "White",
+          "style": "Formal",
+          "materialHint": "Cotton poplin"
+        },
+        {
+          "itemName": "Pencil skirt",
+          "category": "Bottom",
+          "color": "Navy blue",
+          "style": "Formal",
+          "materialHint": "Polyester blend"
+        },
+        {
+          "itemName": "Pointed-toe flats",
+          "category": "Footwear",
+          "color": "Nude / beige",
+          "style": "Formal",
+          "materialHint": "Faux leather"
+        }
+      ],
+      "imagePath": "lookbook/look-004.jpg"
+    },
+    {
+      "lookId": "look-005",
+      "name": "Weekend Chill",
+      "tags": ["casual", "weekend", "relaxed", "pambahay"],
+      "items": [
+        {
+          "itemName": "Oversized hoodie",
+          "category": "Outerwear",
+          "color": "Gray",
+          "style": "Casual",
+          "materialHint": "Fleece cotton"
+        },
+        {
+          "itemName": "Jogger pants",
+          "category": "Bottom",
+          "color": "Black",
+          "style": "Athleisure",
+          "materialHint": "French terry"
+        },
+        {
+          "itemName": "Slides",
+          "category": "Footwear",
+          "color": "Black",
+          "style": "Casual",
+          "materialHint": "Rubber / EVA"
+        }
+      ],
+      "imagePath": "lookbook/look-005.jpg"
+    }
+  ]
+}
