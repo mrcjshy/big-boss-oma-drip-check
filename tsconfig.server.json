@@ -17,5 +17,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["server", "eval", "shared"]
+  "include": ["server", "eval", "shared", "api"]
 }
