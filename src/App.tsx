@@ -5,9 +5,22 @@ import {
   PLATFORM_LABELS,
   SAMPLE_OUTFITS,
 } from './constants'
+import { SITE_METADATA } from './siteMetadata'
 import { BboxOverlay } from './components/BboxOverlay'
-import { analyzeOutfit, getDemoAnalysis } from './geminiService'
+import {
+  analyzeOutfit,
+  DEMO_PROVIDER_LABEL,
+  getDemoAnalysis,
+} from './geminiService'
 import type { OutfitAnalysis, PlatformId, SampleOutfit } from './types'
+import { AllProvidersFailedError } from './utils/llmFallbackChain'
+import type { ProviderLabel } from './utils/providers/shared'
+
+const INITIAL_PROVIDER_LABEL: ProviderLabel = {
+  id: 'gemini',
+  shortName: 'Gemini 2.5 Flash',
+  pillLabel: 'Built with Gemini 2.5 Flash',
+}
 
 const initialDemoAnalysis = getDemoAnalysis()
 const initialActiveTabs = Object.fromEntries(
@@ -25,6 +38,9 @@ function App() {
   const [activeTabs, setActiveTabs] =
     useState<Record<string, PlatformId>>(initialActiveTabs)
   const [isDemo, setIsDemo] = useState(true)
+  const [activeProvider, setActiveProvider] = useState<ProviderLabel>(
+    INITIAL_PROVIDER_LABEL,
+  )
 
   const totalItems = analysis?.items.length ?? 0
   const cheapestTotal = useMemo(
@@ -51,20 +67,24 @@ function App() {
     setIsDemo(false)
 
     try {
-      const result = await analyzeOutfit(file)
+      const { analysis: result, provider } = await analyzeOutfit(file)
       setAnalysis(result)
+      setActiveProvider(provider)
       setActiveTabs(
         Object.fromEntries(result.items.map((item) => [item.id, item.bestPlatform])),
       )
     } catch (caughtError) {
       const message =
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'May sumablay sa analysis. Try ulit with a clearer fit pic.'
+        caughtError instanceof AllProvidersFailedError
+          ? 'All AI providers unavailable. Showing safe demo output muna.'
+          : caughtError instanceof Error
+            ? `${caughtError.message} Showing safe demo output muna.`
+            : 'May sumablay sa analysis. Showing safe demo output muna.'
       const demo = getDemoAnalysis()
 
-      setError(`${message} Showing safe demo output muna.`)
+      setError(message)
       setAnalysis(demo)
+      setActiveProvider(DEMO_PROVIDER_LABEL)
       setActiveTabs(
         Object.fromEntries(demo.items.map((item) => [item.id, item.bestPlatform])),
       )
@@ -102,8 +122,27 @@ function App() {
             <span className="wordmark-text">DRIP CHECK</span>
           </a>
           <nav className="topbar-meta" aria-label="About this build">
-            <span className="topbar-chip">Manila · 2026</span>
-            <span className="topbar-chip topbar-chip-accent">Built with Gemini 2.5 Flash</span>
+            <span className="topbar-chip">
+              {SITE_METADATA.location} · {SITE_METADATA.year}
+            </span>
+            {SITE_METADATA.collaborators.map((collaborator) => (
+              <a
+                key={collaborator.handle}
+                className="topbar-chip topbar-chip-link"
+                href={collaborator.githubUrl}
+                target="_blank"
+                rel="noreferrer"
+                title={`${collaborator.name} on GitHub`}
+              >
+                @{collaborator.handle}
+              </a>
+            ))}
+            <span
+              className="topbar-chip topbar-chip-accent"
+              title={`Last analysis provider: ${activeProvider.shortName}`}
+            >
+              {activeProvider.pillLabel}
+            </span>
           </nav>
         </div>
       </header>
@@ -361,8 +400,22 @@ function App() {
 
         <footer className="page-footer">
           <span>
-            Drip Check · A Filipino fashion finder demo for GDG Manila Build
-            with AI 2026.
+            Drip Check · {SITE_METADATA.event}
+            {' · '}
+            <span className="page-footer-collaborators">
+              {SITE_METADATA.collaborators.map((collaborator, index) => (
+                <span key={collaborator.handle}>
+                  {index > 0 ? ', ' : null}
+                  <a
+                    href={collaborator.githubUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {collaborator.name} (@{collaborator.handle})
+                  </a>
+                </span>
+              ))}
+            </span>
           </span>
           <span>
             No real-time prices. Estimates only. Hanapin pa rin ang totoong sale.

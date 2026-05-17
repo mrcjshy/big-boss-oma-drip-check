@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent, RefObject } from 'react'
 import { PLATFORM_ACCENTS, PLATFORM_LABELS } from '../constants'
 import type { ClothingItem, PlatformId } from '../types'
+import { HotspotPopover } from './HotspotPopover'
 
 type BboxOverlayProps = {
   imageRef: RefObject<HTMLImageElement | null>
@@ -15,9 +16,6 @@ type ImageBox = {
   height: number
 }
 
-const POPOVER_WIDTH = 220
-const POPOVER_HEIGHT_EST = 310
-const POPOVER_OFFSET = 14
 const MAX_VISIBLE = 8
 
 const PLATFORM_GLOW: Record<string, string> = {
@@ -25,9 +23,6 @@ const PLATFORM_GLOW: Record<string, string> = {
   lazada: 'rgba(0, 109, 237, 0.65)',
   carousell: 'rgba(76, 175, 80, 0.65)',
 }
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value))
 
 export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -82,7 +77,10 @@ export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
   useEffect(() => {
     const collapse = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null
-      if (!target?.closest('.hotspot-group')) {
+      if (
+        !target?.closest('.hotspot-group') &&
+        !target?.closest('.hotspot-popover')
+      ) {
         setPinnedId(null)
       }
     }
@@ -127,12 +125,17 @@ export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
 
   if (!imageBox) return <div ref={overlayRef} className="bbox-overlay" />
 
+  const overlayRect = overlayRef.current?.getBoundingClientRect()
+
   return (
     <div ref={overlayRef} className="bbox-overlay" aria-label="Detected clothing items">
       {visibleItems.map((item) => {
         const [ymin, xmin, ymax, xmax] = item.bbox
         const cx = imageBox.left + ((xmin + xmax) / 2000) * imageBox.width
         const cy = imageBox.top + ((ymin + ymax) / 2000) * imageBox.height
+        const anchor = overlayRect
+          ? { x: overlayRect.left + cx, y: overlayRect.top + cy }
+          : { x: cx, y: cy }
         const isBest = item.platforms.some((p) => p.platform === item.bestPlatform)
         const glowColor =
           isBest
@@ -142,16 +145,6 @@ export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
         const activeTab = activeTabByItem[item.id] ?? item.bestPlatform
         const activeDeal =
           item.platforms.find((p) => p.platform === activeTab) ?? item.platforms[0]
-
-        const imageRight = imageBox.left + imageBox.width
-        const imageBottom = imageBox.top + imageBox.height
-        let popX = cx + POPOVER_OFFSET
-        let popY = cy - POPOVER_HEIGHT_EST / 2
-        if (popX + POPOVER_WIDTH > imageRight) {
-          popX = cx - POPOVER_WIDTH - POPOVER_OFFSET
-        }
-        popX = clamp(popX, imageBox.left, imageRight - POPOVER_WIDTH)
-        popY = clamp(popY, imageBox.top, imageBottom - POPOVER_HEIGHT_EST)
 
         return (
           <div key={item.id} className="hotspot-group">
@@ -181,16 +174,9 @@ export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
             </button>
 
             {isOpen && (
-              <div
-                className="hotspot-popover"
-                role="tooltip"
-                style={
-                  {
-                    '--pop-x': `${popX}px`,
-                    '--pop-y': `${popY}px`,
-                    '--platform-accent': PLATFORM_ACCENTS[item.bestPlatform],
-                  } as CSSProperties
-                }
+              <HotspotPopover
+                anchor={anchor}
+                platformAccent={PLATFORM_ACCENTS[item.bestPlatform]}
                 onMouseEnter={() => keepHover(item.id)}
                 onMouseLeave={clearHover}
               >
@@ -263,7 +249,7 @@ export function BboxOverlay({ imageRef, items }: BboxOverlayProps) {
                   </span>
                   <span className="hotspot-bestbuy-reason">{item.bestBuyReason}</span>
                 </div>
-              </div>
+              </HotspotPopover>
             )}
           </div>
         )

@@ -209,6 +209,16 @@ p {
   background: var(--lime);
 }
 
+.topbar-chip-link {
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.topbar-chip-link:hover {
+  background: var(--lime);
+}
+
 @media (max-width: 720px) {
   .topbar-meta .topbar-chip:first-child {
     display: none;
@@ -1154,6 +1164,17 @@ h3 {
   font-size: 0.85rem;
 }
 
+.page-footer a {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.page-footer a:hover {
+  color: var(--coral);
+}
+
 /* ───────── Animations ───────── */
 
 @keyframes breathe {
@@ -1246,10 +1267,6 @@ h3 {
 /* Hotspot popover card */
 
 .hotspot-popover {
-  position: absolute;
-  left: var(--pop-x);
-  top: var(--pop-y);
-  z-index: 10;
   width: 220px;
   display: grid;
   gap: 8px;
@@ -1264,6 +1281,13 @@ h3 {
   backdrop-filter: blur(16px);
   pointer-events: auto;
   animation: pop-in 140ms ease both;
+}
+
+.hotspot-popover--fixed {
+  position: fixed;
+  z-index: 10000;
+  max-height: min(85vh, 640px);
+  overflow-y: auto;
 }
 
 @keyframes pop-in {
